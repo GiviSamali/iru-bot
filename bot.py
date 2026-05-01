@@ -12,19 +12,17 @@ from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.client.session.aiohttp import AiohttpSession
 
 from config import BOT_TOKEN, ADMIN_TELEGRAM_ID, DB_PATH, PROXY_URL
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# bot создаётся внутри async main() — после запуска event loop
 bot: Bot = None
 dp = Dispatcher(storage=MemoryStorage())
 
 
-# ─── FSM ────────────────────────────────────────────────────────────────────
+# ─── FSM ───────────────────────────────────────────────────────────────────
 
 class ApplyForm(StatesGroup):
     waiting_name = State()
@@ -32,7 +30,7 @@ class ApplyForm(StatesGroup):
     waiting_contact = State()
 
 
-# ─── DB helpers ─────────────────────────────────────────────────────────────
+# ─── DB helpers ────────────────────────────────────────────────────────────
 
 def db_connect():
     return sqlite3.connect(DB_PATH)
@@ -141,7 +139,7 @@ def ensure_applications_table():
         conn.commit()
 
 
-# ─── Keyboards ───────────────────────────────────────────────────────────────
+# ─── Keyboards ─────────────────────────────────────────────────────────────
 
 def main_kb(is_registered: bool) -> ReplyKeyboardMarkup:
     buttons = []
@@ -170,7 +168,7 @@ def app_action_kb(app_id: int) -> InlineKeyboardMarkup:
     ])
 
 
-# ─── Handlers ────────────────────────────────────────────────────────────────────
+# ─── Handlers ─────────────────────────────────────────────────────────────────
 
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
@@ -387,7 +385,7 @@ async def cmd_admin(message: Message):
     await message.answer("🔧 <b>Панель администратора</b>", parse_mode="HTML", reply_markup=admin_kb())
 
 
-# ─── Entry point ─────────────────────────────────────────────────────────────
+# ─── Entry point ───────────────────────────────────────────────────────────
 
 async def main():
     global bot
@@ -396,8 +394,14 @@ async def main():
     if PROXY_URL:
         try:
             from aiohttp_socks import ProxyConnector
+            import aiohttp
             connector = ProxyConnector.from_url(PROXY_URL)
-            session = AiohttpSession(connector=connector)
+            # Используем низкоуровневый aiohttp session напрямую— aiogram возьмёт его через TelegramAPIServer
+            from aiogram.client.telegram import TelegramAPIServer
+            from aiogram.client.session.aiohttp import AiohttpSession
+            session = AiohttpSession()
+            session._connector = connector
+            session._connector_owner = False
             bot = Bot(token=BOT_TOKEN, session=session)
             logger.info(f"Прокси активен: {PROXY_URL}")
         except Exception as e:
