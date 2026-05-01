@@ -1,0 +1,15 @@
+[Unit]
+Description=ИРУ Telegram Bot
+After=network.target iru.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/iru/bot
+ExecStart=/opt/iru/venv/bin/python bot.py
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/iru/bot/.env
+
+[Install]
+WantedBy=multi-user.target
