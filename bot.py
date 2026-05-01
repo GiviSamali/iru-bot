@@ -12,13 +12,28 @@ from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.client.session.aiohttp import AiohttpSession
 
-from config import BOT_TOKEN, ADMIN_TELEGRAM_ID, DB_PATH
+from config import BOT_TOKEN, ADMIN_TELEGRAM_ID, DB_PATH, PROXY_URL
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-bot = Bot(token=BOT_TOKEN)
+# ─── Bot with optional SOCKS5 proxy ─────────────────────────────────────────
+
+if PROXY_URL:
+    try:
+        from aiohttp_socks import ProxyConnector
+        _connector = ProxyConnector.from_url(PROXY_URL)
+        _session = AiohttpSession(connector=_connector)
+        bot = Bot(token=BOT_TOKEN, session=_session)
+        logger.info(f"Прокси активен: {PROXY_URL}")
+    except ImportError:
+        logger.warning("aiohttp-socks не установлен, запуск без прокси")
+        bot = Bot(token=BOT_TOKEN)
+else:
+    bot = Bot(token=BOT_TOKEN)
+
 dp = Dispatcher(storage=MemoryStorage())
 
 
